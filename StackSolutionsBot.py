@@ -23,7 +23,9 @@ def load_session():
 
 def main():
     load_session()
+    #TODO change to searching several subs, dynamic loading
     for comment in reddit.subreddit('overflowbottesting').stream.comments():
+        #TODO don't hardcode
         result = re.search('(?<=overflowbot search).*$', comment.body)
         if (result is not None):
             logging.info(Template('Received query: $query').substitute(query=result.group(0)))
@@ -35,6 +37,7 @@ def main():
                 except praw.exceptions.APIException as err:
                     logging.error(str(err))
 
+#TODO factor into separate class
 def overflow_search(keywords):
     url = Template('https://api.stackexchange.com/2.2/search/advanced?order=desc&sort=votes&accepted=True&title=$title&site=stackoverflow&filter=!4y_5(4rHB9wzDjwGn35hUSguJO2n5y38KMQZ9P').substitute(title=keywords)
     response = requests.get(url)
