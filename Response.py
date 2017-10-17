@@ -7,7 +7,7 @@ class Response:
     template_response = '**$asker asked: $question**\n\n' \
                         '$body\n\n' \
                         '*****\n' \
-                        '**$replier answered**: $answer\n\n' \
+                        '**$replier answered**:\n\n $answer\n\n' \
                         '*****\n' \
                         '[Source]($link) (I\'m a bot, *bleep bloop*)'
 
