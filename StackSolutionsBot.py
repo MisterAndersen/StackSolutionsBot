@@ -1,12 +1,19 @@
-import praw, yaml, re, requests, html
+import praw, yaml, re, time
 import logging
 from string import Template
+from Search import Search
+from Response import Response
+from praw.models import Comment
+
 reddit = None
+username = None
+
 
 def load_session():
     with open("creds.yml", 'r') as stream:
         try:
             creds = yaml.load(stream)
+            global username
             username = creds['username']
             password = creds['password']
             client_id = creds['client_id']
@@ -16,41 +23,32 @@ def load_session():
             global reddit
             reddit = praw.Reddit(client_id=client_id, client_secret=client_secret, password=password,
                                  user_agent=user_agent, username=username)
-            logging.basicConfig( level=logging.INFO)
+            logging.basicConfig(level=logging.INFO)
 
         except yaml.YAMLError as exc:
             logging.error(exc)
 
+
 def main():
     load_session()
-    #TODO change to searching several subs, dynamic loading
-    for comment in reddit.subreddit('overflowbottesting').stream.comments():
-        #TODO don't hardcode
-        result = re.search('(?<=overflowbot search).*$', comment.body)
-        if (result is not None):
-            logging.info(Template('Received query: $query').substitute(query=result.group(0)))
-            overflow_answer = overflow_search(result.group(0))
-            if (overflow_answer is not None):
-                try:
-                    logging.info(Template('Posting comment $comment').substitute(comment=overflow_answer))
-                    comment.reply(overflow_answer)
-                except praw.exceptions.APIException as err:
-                    logging.error(str(err))
+    while True:
+        for item in reddit.inbox.mentions():
+            processed = []
+            if isinstance(item, Comment) and item.new:
+                parse_query(item)
+                processed.append(item)
+            reddit.inbox.mark_read(processed)
+        time.sleep(5)
 
-#TODO factor into separate class
-def overflow_search(keywords):
-    url = Template('https://api.stackexchange.com/2.2/search/advanced?order=desc&sort=votes&accepted=True&title=$title&site=stackoverflow&filter=!4y_5(4rHB9wzDjwGn35hUSguJO2n5y38KMQZ9P').substitute(title=keywords)
-    response = requests.get(url)
-    if (response.status_code == requests.codes.ok):
-        response_json = response.json()
-        if (len(response_json['items']) > 0):
-            return html.unescape(response_json['items'][0]['answers'][0]['body_markdown'])
-        else:
-            logging.info(Template('Query $query had no valid answers').substitute(query=keywords))
-    else:
-        logging.error(Template('Received status code $code when attempting to query Stack Overflow. Response is as follows: $response').substitute(code = response.status_code, response=response.text))
-    return None
-
+def parse_query(comment):
+    result = re.search('(?<=/u/' + username + ' ).*$', comment.body, re.IGNORECASE)
+    if result is not None:
+        logging.info(Template('Received query: $query').substitute(query=result.group(0)))
+        try:
+            comment.reply(Response().construct_response(Search().search(result.group(0))))
+            logging.info('Posted comment')
+        except praw.exceptions.APIException as err:
+            logging.error(str(err))
 
 if __name__ == '__main__':
     main()
