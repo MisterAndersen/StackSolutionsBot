@@ -9,7 +9,7 @@ class Response:
                         '*****\n' \
                         '**$replier answered**: $answer\n\n' \
                         '*****\n' \
-                        '[source]($link) (I\'m a bot, *bleep bloop*)'
+                        '[Source]($link) (I\'m a bot, *bleep bloop*)'
 
     error_response = 'I couldn\'t find any results for that query.\n\n' \
                      'Sorry ¯\\\\\_(ツ)\_/¯\n\n' \

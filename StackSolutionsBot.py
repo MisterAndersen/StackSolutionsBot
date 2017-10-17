@@ -41,11 +41,14 @@ def main():
         time.sleep(5)
 
 def parse_query(comment):
-    result = re.search('(?<=/u/' + username + ' ).*$', comment.body, re.IGNORECASE)
+    result = re.search("(/u/" + username + "\s*)(?:.*(!\w*))?(.*$)", comment.body, re.IGNORECASE)
     if result is not None:
-        logging.info(Template('Received query: $query').substitute(query=result.group(0)))
+        logging.info(Template('Received query: $query').substitute(query=result.group(3)))
         try:
-            comment.reply(Response().construct_response(Search().search(result.group(0))))
+            if result.group(2) is not None:
+                comment.reply(Response().construct_response(Search().search(result.group(3), result.group(2)[1:])))
+            else:
+                comment.reply(Response().construct_response(Search().search(result.group(3))))
             logging.info('Posted comment')
         except praw.exceptions.APIException as err:
             logging.error(str(err))
